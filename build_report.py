@@ -64,11 +64,16 @@ def report_meta(local_date, run_tag):
     start = datetime.strptime(local_date, "%Y-%m-%d")
     end = start + timedelta(days=1)
     run = datetime.strptime(run_tag, "%Y%m%d%H")
+    run_local = run + timedelta(hours=7)
+    # period start 07:00 local equals 00 UTC of the forecast date
+    lead_start = int((start - run).total_seconds() // 3600)
     return {
         "dateTh": thai_long(start),
         "startTh": f"07:00 น. {thai_short(start)}",
         "endTh": f"07:00 น. {thai_short(end)}",
-        "run": f"{run:%H} UTC {thai_short(run)}",
+        "run": f"{run:%H}00 UTC {thai_short(run)}",
+        "initLocal": f"{run_local:%H}:00 น. {thai_short(run_local)}",
+        "leads": f"+{lead_start} ถึง +{lead_start + 24} ชม.",
     }
 
 
