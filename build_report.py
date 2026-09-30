@@ -40,10 +40,10 @@ EDGE_FADE_PX = 60
 # (upper bound mm, RGBA) per rain class; values below 0.1 mm stay transparent
 OVERLAY_COLORS = [
     (0.1, (0, 0, 0, 0)),
-    (10.05, (92, 198, 247, 120)),
-    (35.05, (61, 139, 255, 185)),
-    (90.05, (255, 165, 58, 215)),
-    (float("inf"), (255, 77, 97, 230)),
+    (10.05, (79, 179, 238, 120)),
+    (35.05, (26, 111, 207, 190)),
+    (90.05, (242, 138, 26, 215)),
+    (float("inf"), (217, 37, 59, 230)),
 ]
 CHROME_CANDIDATES = [
     "google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge",
