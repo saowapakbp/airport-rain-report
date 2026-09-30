@@ -14,7 +14,7 @@
   --surface:rgba(255,255,255,.95); --surface-solid:#ffffff;
   --ink:#0a2c55; --ink-soft:#4b6685; --ink-faint:#7d93ad; --hair:#d9e5f0; --shadow:0 14px 34px -22px rgba(10,44,85,.6);
   --brand:#0d5ca8; --brand-deep:#072f5f; --accent:#1690d8;
-  --sea-1:#cfe8f7; --sea-2:#a9d5ef; --land-other:#f1efe4; --land-edge:#cfcbb8; --nation-edge:#ffffff;
+  --sea-1:#d6ebf7; --sea-2:#a9d5ef; --land-other:#ebe9e0; --land-edge:#cfcbb8; --land-th:#fbfaf5; --nation-edge:#ffffff;
   --r-north:#a9d99a; --r-ne_upper:#dfe79c; --r-ne_lower:#f5d99b; --r-central:#a6d9c9; --r-southeast:#a3d6ec; --r-southwest:#bcc7f1;
   --e-north:#2f9a62; --e-north-2:#1b6a42; --e-ne_upper:#8fa822; --e-ne_upper-2:#5c700f; --e-ne_lower:#dc9b1f; --e-ne_lower-2:#a86a0a;
   --e-central:#1f9c88; --e-central-2:#11695b; --e-southeast:#1d8fd0; --e-southeast-2:#0f5f93; --e-southwest:#5a6fd6; --e-southwest-2:#36479c;
@@ -73,12 +73,11 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 .map{grid-area:map;margin:0;position:relative;overflow:hidden;align-self:start;background:var(--sea-1)}
 .map svg{display:block;width:100%;height:auto}
 .land-other{fill:var(--land-other);stroke:var(--land-edge);stroke-width:.6}
-.region{stroke:var(--nation-edge);stroke-width:1.1;stroke-linejoin:round;transition:filter .2s}
-.region.north{fill:var(--r-north)} .region.ne_upper{fill:var(--r-ne_upper)} .region.ne_lower{fill:var(--r-ne_lower)}
-.region.central{fill:var(--r-central)} .region.southeast{fill:var(--r-southeast)} .region.southwest{fill:var(--r-southwest)}
-.region.is-hot{filter:brightness(1.06) saturate(1.4)}
+/* regions stay neutral so the only colour on the map is rainfall */
+.region{fill:var(--land-th);stroke:#8fa2b7;stroke-width:.8;stroke-dasharray:3 2;stroke-linejoin:round;transition:fill .2s}
+.region.is-hot{fill:#e3edf6}
 .relief{mix-blend-mode:multiply;opacity:.95}
-.nation-edge{fill:none;stroke:#fff;stroke-width:1.6;filter:drop-shadow(0 2px 3px rgba(10,44,85,.35))}
+.nation-edge{fill:none;stroke:#5d7188;stroke-width:1.1;stroke-linejoin:round;filter:drop-shadow(0 2px 3px rgba(10,44,85,.3))}
 .rain{opacity:.92}
 .map .cap{position:absolute;left:14px;top:12px;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.85);border:1px solid var(--hair);pointer-events:none}
 .map .cap b{display:block;font-family:var(--font-display);font-size:.82rem;color:var(--brand-deep)}
