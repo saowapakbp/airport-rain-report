@@ -1,0 +1,68 @@
+name: daily-report
+
+on:
+  schedule:
+    - cron: "30 23 * * *"  # 06:30 Asia/Bangkok; GitHub may start scheduled runs 5-30 min late
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Forecast date YYYY-MM-DD (blank = today, Asia/Bangkok)"
+        required: false
+      notify:
+        description: "Send the image to LINE"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Bangkok
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Resolve date
+        id: when
+        run: |
+          D="${{ inputs.date }}"
+          echo "date=${D:-$(date +%F)}" >> "$GITHUB_OUTPUT"
+
+      - name: Build report
+        run: python build_report.py --date "${{ steps.when.outputs.date }}"
+
+      - name: Commit report images
+        run: |
+          git config user.name "report-bot"
+          git config user.email "report-bot@users.noreply.github.com"
+          git add reports/*.png reports/*.jpg
+          git commit -m "report: ${{ steps.when.outputs.date }}" || echo "no changes"
+          git push
+
+      - name: Send to LINE
+        if: ${{ github.event_name == 'schedule' || inputs.notify }}
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: sleep 20 && python notify_line.py --date "${{ steps.when.outputs.date }}"
+
+      - name: Notify failure
+        if: ${{ failure() }}
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: python notify_line.py --failed --date "${{ steps.when.outputs.date }}" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -1,0 +1,35 @@
+﻿icao,name_th,region,lat,lon,synop_wmo,synop_name,synop_dist_km,synop_source,tmd_station_id,label_dx,label_dy
+VTCC,ท่าอากาศยานเชียงใหม่,north,18.767,98.963,48327,Chiang Mai (Meteorological Centre),0.7,override: tmd_127stations lists 327501 as WMO 48453 (Bangna),327501,-26,0
+VTCT,ท่าอากาศยานแม่ฟ้าหลวง เชียงราย,north,19.952,99.883,48303,Chiang Rai,1.1,runways_db,303201,26,0
+VTCH,ท่าอากาศยานแม่ฮ่องสอน,north,19.301,97.976,48300,Mae Hong Son,0.2,runways_db,300201,26,-4
+VTCL,ท่าอากาศยานลำปาง,north,18.271,99.504,48328,Lampang,0.9,runways_db,328201,-26,4
+VTCP,ท่าอากาศยานแพร่,north,18.132,100.165,48330,Phrae,0.5,runways_db,330201,26,2
+VTCN,ท่าอากาศยานน่านนคร,north,18.808,100.783,48331,Nan,5.0,runways_db,331201,26,0
+VTPM,ท่าอากาศยานแม่สอด,north,16.7,98.545,48375,Mae Sot Hydrological (Tak),0.5,"override: runways_db points to Tak (376201, 66 km)",376202,-26,0
+VTPP,ท่าอากาศยานพิษณุโลก,north,16.783,100.279,48378,Phitsanulok,1.5,runways_db,378201,0,16
+VTPO,สนามบินสุโขทัย,north,17.238,99.818,48373,Si Samrong Agricultural (Sukhothai),9.7,nearest_tmd127,373301,-28,0
+VTPB,ท่าอากาศยานเพชรบูรณ์,north,16.676,101.195,48374,Lom Sak Hydrological (Phetchabun),12.1,nearest_tmd127,379401,4,20
+VTUK,ท่าอากาศยานขอนแก่น,northeast,16.467,102.784,48381,Khon Kaen (Meteorological Centre),0.9,runways_db,381201,0,-14
+VTUD,ท่าอากาศยานอุดรธานี,northeast,17.386,102.788,48354,Udon Thani,2.5,runways_db,354201,0,-14
+VTUI,ท่าอากาศยานสกลนคร,northeast,17.195,104.119,48356,Sakon Nakhon,4.9,runways_db,356201,-4,-14
+VTUW,ท่าอากาศยานนครพนม,northeast,17.384,104.643,48357,Nakhon Phanom,15.1,override: tmd_127stations WMO typo 78357,357201,22,12
+VTUL,ท่าอากาศยานเลย,northeast,17.439,101.722,48353,Loei,1.8,runways_db,353201,0,-14
+VTUU,ท่าอากาศยานอุบลราชธานี,northeast,15.251,104.87,48407,Ubon Ratchathani (Meteorological Centre),0.9,nearest_tmd127,403201,0,16
+VTUO,ท่าอากาศยานบุรีรัมย์,northeast,15.23,103.253,48437,Satuk Airport (Buri Ram),0.7,runways_db,436201,-4,-14
+VTUQ,ท่าอากาศยานนครราชสีมา,northeast,14.949,102.313,48431,Nakhon Ratchasima,24.5,nearest_tmd127,431201,-26,2
+VTUV,ท่าอากาศยานร้อยเอ็ด,northeast,16.117,103.774,48405,Roi Et,13.8,nearest_tmd127,405201,26,0
+VTBS,ท่าอากาศยานสุวรรณภูมิ,central,13.681,100.748,48429,Suvarnabhumi Airport (Samut Prakan),2.2,runways_db,429601,30,4
+VTBD,ท่าอากาศยานดอนเมือง,central,13.913,100.607,48456,Bangkok (Don Mueang Airport),0.7,runways_db,455601,-30,-10
+VTBO,สนามบินตราด,central,12.275,102.32,48481,Phliu Agricultural (Chanthaburi),30.8,nearest_tmd127,480301,30,0
+VTPH,ท่าอากาศยานหัวหิน,southeast,12.636,99.952,48475,Hua Hin (Radar Tower),6.5,runways_db,500202,-30,0
+VTSE,ท่าอากาศยานชุมพร,southeast,10.711,99.362,48517,Chumphon,30.3,nearest_tmd127,517201,28,0
+VTSM,สนามบินสมุย,southeast,9.548,100.062,48550,Ko Samui (Surat Thani),11.3,nearest_tmd127,551203,28,-4
+VTSB,ท่าอากาศยานสุราษฎร์ธานี,southeast,9.133,99.136,48551,Surat Thani,1.8,runways_db,551201,-30,0
+VTSF,ท่าอากาศยานนครศรีธรรมราช,southeast,8.54,99.945,48552,Nakhon Si Thammarat,0.5,runways_db,552201,30,0
+VTSS,ท่าอากาศยานหาดใหญ่,southeast,6.933,100.393,48569,Hat Yai Airport (Songkhla),0.6,runways_db,568502,30,0
+VTSC,ท่าอากาศยานนราธิวาส,southeast,6.52,101.743,48583,Narathiwat,13.8,nearest_tmd127,583201,28,0
+VTSY,ท่าอากาศยานนานาชาติเบตง,southeast,5.787,101.15,48581,Yala,82.2,nearest_tmd127,581301,28,0
+VTSP,ท่าอากาศยานภูเก็ต,southwest,8.113,98.317,48565,Phuket Airport (Meteorological Centre),1.3,runways_db,564202,-22,14
+VTSG,ท่าอากาศยานกระบี่,southwest,8.099,98.986,48563,Krabi,0.9,runways_db,566202,-8,22
+VTSR,ท่าอากาศยานระนอง,southwest,9.778,98.585,48532,Ranong,20.2,nearest_tmd127,532201,-28,0
+VTST,ท่าอากาศยานตรัง,southwest,7.509,99.617,48567,Trang,0.8,runways_db,567201,28,4
