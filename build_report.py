@@ -1,5 +1,8 @@
 import argparse
+import base64
+import io
 import json
+import math
 import logging
 import os
 import shutil
@@ -8,10 +11,12 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from PIL import Image
+import numpy as np
+import xarray as xr
+from PIL import Image, ImageFilter
 
 from common import HERE, load_airports
-from fetch_wrfda_24h import process_date
+from fetch_wrfda_24h import GRID_DIR, process_date
 
 log = logging.getLogger("report")
 
@@ -23,9 +28,23 @@ THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มี�
 THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
                      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
 BUDDHIST_OFFSET = 543
-VIEWPORT = (1560, 1100)
+VIEWPORT = (1560, 1000)
 SCALE = 1.5
 PREVIEW_WIDTH = 1040
+# must match MAP in report_template.html
+MAP_LON0, MAP_LAT1, MAP_K = 97.0, 20.7, 40.0
+MAP_COS = math.cos(math.radians(13))
+OVERLAY_UPSCALE = 3
+LIGHT_ALPHA_MIN, LIGHT_ALPHA_MAX = 25, 150
+EDGE_FADE_PX = 60
+# (upper bound mm, RGBA) per rain class; values below 0.1 mm stay transparent
+OVERLAY_COLORS = [
+    (0.1, (0, 0, 0, 0)),
+    (10.05, (92, 198, 247, 120)),
+    (35.05, (61, 139, 255, 185)),
+    (90.05, (255, 165, 58, 215)),
+    (float("inf"), (255, 77, 97, 230)),
+]
 CHROME_CANDIDATES = [
     "google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge",
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -57,6 +76,40 @@ def airport_rows(points, airports):
     merged = airports.merge(points[["icao", "rain24_mm"]], on="icao", how="left")
     return [[r.region, r.icao, r.name_th, round(float(r.rain24_mm), 1), r.lat, r.lon, int(r.label_dx), int(r.label_dy)]
             for r in merged.itertuples()]
+
+
+def project(lon, lat):
+    return (lon - MAP_LON0) * MAP_K * MAP_COS, (MAP_LAT1 - lat) * MAP_K
+
+
+def edge_taper(shape):
+    rows = np.minimum(np.arange(shape[0]), np.arange(shape[0])[::-1]) / EDGE_FADE_PX
+    cols = np.minimum(np.arange(shape[1]), np.arange(shape[1])[::-1]) / EDGE_FADE_PX
+    return np.clip(np.outer(rows, np.ones(shape[1])), 0, 1) * np.clip(np.outer(np.ones(shape[0]), cols), 0, 1)
+
+
+def rain_overlay(local_date, run_tag):
+    with xr.open_dataset(GRID_DIR / f"wrfda_d02_24h_{local_date}_run{run_tag}.nc", engine="scipy") as ds:
+        rain = ds["rain24_mm"].values.astype("float32")
+        lons, lats = ds["x"].values, ds["y"].values
+    field = Image.fromarray(np.flipud(rain), mode="F")
+    field = field.resize((field.width * OVERLAY_UPSCALE, field.height * OVERLAY_UPSCALE), Image.BILINEAR)
+    values = np.asarray(field)
+    bounds = np.array([upper for upper, _ in OVERLAY_COLORS])
+    palette = np.array([rgba for _, rgba in OVERLAY_COLORS], dtype="uint8")
+    rgba = palette[np.searchsorted(bounds, values, side="right").clip(0, len(bounds) - 1)].copy()
+    is_light = (values >= 0.1) & (values < 10.05)
+    # light rain fades in with amount so widespread drizzle does not read as noise
+    rgba[..., 3] = np.where(is_light, (LIGHT_ALPHA_MIN + (LIGHT_ALPHA_MAX - LIGHT_ALPHA_MIN) * values / 10.0), rgba[..., 3])
+    rgba[..., 3] = (rgba[..., 3] * edge_taper(values.shape)).astype("uint8")
+    image = Image.fromarray(rgba, mode="RGBA").filter(ImageFilter.GaussianBlur(1.2))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+    dlon, dlat = float(lons[1] - lons[0]), float(lats[1] - lats[0])
+    x0, y0 = project(float(lons[0]) - dlon / 2, float(lats[-1]) + dlat / 2)
+    x1, y1 = project(float(lons[-1]) + dlon / 2, float(lats[0]) - dlat / 2)
+    return {"href": "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode(),
+            "x": round(x0, 2), "y": round(y0, 2), "w": round(x1 - x0, 2), "h": round(y1 - y0, 2)}
 
 
 def write_html(local_date, rows, meta):
@@ -110,7 +163,8 @@ def main():
     airports = load_airports()
     run = datetime.strptime(args.run, "%Y%m%d%H").replace(tzinfo=timezone.utc) if args.run else None
     points = process_date(args.date, run, False, airports)
-    meta = report_meta(args.date, points["run"].iloc[0])
+    run_tag = points["run"].iloc[0]
+    meta = {**report_meta(args.date, run_tag), "overlay": rain_overlay(args.date, run_tag)}
     html = write_html(args.date, airport_rows(points, airports), meta)
     log.info("html -> %s (run %s)", html, meta["run"])
     if args.no_png:

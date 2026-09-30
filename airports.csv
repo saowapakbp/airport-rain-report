@@ -9,15 +9,15 @@ VTPM,ท่าอากาศยานแม่สอด,north,16.7,98.545,48375
 VTPP,ท่าอากาศยานพิษณุโลก,north,16.783,100.279,48378,Phitsanulok,1.5,runways_db,378201,0,16
 VTPO,สนามบินสุโขทัย,north,17.238,99.818,48373,Si Samrong Agricultural (Sukhothai),9.7,nearest_tmd127,373301,-28,0
 VTPB,ท่าอากาศยานเพชรบูรณ์,north,16.676,101.195,48374,Lom Sak Hydrological (Phetchabun),12.1,nearest_tmd127,379401,4,20
-VTUK,ท่าอากาศยานขอนแก่น,northeast,16.467,102.784,48381,Khon Kaen (Meteorological Centre),0.9,runways_db,381201,0,-14
-VTUD,ท่าอากาศยานอุดรธานี,northeast,17.386,102.788,48354,Udon Thani,2.5,runways_db,354201,0,-14
-VTUI,ท่าอากาศยานสกลนคร,northeast,17.195,104.119,48356,Sakon Nakhon,4.9,runways_db,356201,-4,-14
-VTUW,ท่าอากาศยานนครพนม,northeast,17.384,104.643,48357,Nakhon Phanom,15.1,override: tmd_127stations WMO typo 78357,357201,22,12
-VTUL,ท่าอากาศยานเลย,northeast,17.439,101.722,48353,Loei,1.8,runways_db,353201,0,-14
-VTUU,ท่าอากาศยานอุบลราชธานี,northeast,15.251,104.87,48407,Ubon Ratchathani (Meteorological Centre),0.9,nearest_tmd127,403201,0,16
-VTUO,ท่าอากาศยานบุรีรัมย์,northeast,15.23,103.253,48437,Satuk Airport (Buri Ram),0.7,runways_db,436201,-4,-14
-VTUQ,ท่าอากาศยานนครราชสีมา,northeast,14.949,102.313,48431,Nakhon Ratchasima,24.5,nearest_tmd127,431201,-26,2
-VTUV,ท่าอากาศยานร้อยเอ็ด,northeast,16.117,103.774,48405,Roi Et,13.8,nearest_tmd127,405201,26,0
+VTUK,ท่าอากาศยานขอนแก่น,ne_upper,16.467,102.784,48381,Khon Kaen (Meteorological Centre),0.9,runways_db,381201,0,-14
+VTUD,ท่าอากาศยานอุดรธานี,ne_upper,17.386,102.788,48354,Udon Thani,2.5,runways_db,354201,0,-14
+VTUI,ท่าอากาศยานสกลนคร,ne_upper,17.195,104.119,48356,Sakon Nakhon,4.9,runways_db,356201,-4,-14
+VTUW,ท่าอากาศยานนครพนม,ne_upper,17.384,104.643,48357,Nakhon Phanom,15.1,override: tmd_127stations WMO typo 78357,357201,22,12
+VTUL,ท่าอากาศยานเลย,ne_upper,17.439,101.722,48353,Loei,1.8,runways_db,353201,0,-14
+VTUU,ท่าอากาศยานอุบลราชธานี,ne_lower,15.251,104.87,48407,Ubon Ratchathani (Meteorological Centre),0.9,nearest_tmd127,403201,0,16
+VTUO,ท่าอากาศยานบุรีรัมย์,ne_lower,15.23,103.253,48437,Satuk Airport (Buri Ram),0.7,runways_db,436201,-4,-14
+VTUQ,ท่าอากาศยานนครราชสีมา,ne_lower,14.949,102.313,48431,Nakhon Ratchasima,24.5,nearest_tmd127,431201,-26,2
+VTUV,ท่าอากาศยานร้อยเอ็ด,ne_lower,16.117,103.774,48405,Roi Et,13.8,nearest_tmd127,405201,26,0
 VTBS,ท่าอากาศยานสุวรรณภูมิ,central,13.681,100.748,48429,Suvarnabhumi Airport (Samut Prakan),2.2,runways_db,429601,30,4
 VTBD,ท่าอากาศยานดอนเมือง,central,13.913,100.607,48456,Bangkok (Don Mueang Airport),0.7,runways_db,455601,-30,-10
 VTBO,สนามบินตราด,central,12.275,102.32,48481,Phliu Agricultural (Chanthaburi),30.8,nearest_tmd127,480301,30,0
