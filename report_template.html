@@ -14,7 +14,7 @@
   --surface:rgba(255,255,255,.95); --surface-solid:#ffffff;
   --ink:#0a2c55; --ink-soft:#4b6685; --ink-faint:#7d93ad; --hair:#d9e5f0; --shadow:0 14px 34px -22px rgba(10,44,85,.6);
   --brand:#0d5ca8; --brand-deep:#072f5f; --accent:#1690d8;
-  --sea-1:#d6ebf7; --sea-2:#a9d5ef; --land-other:#dcdad0; --land-edge:#bdb9a6; --land-th:#ecebe4; --nation-edge:#ffffff;
+  --sea-1:#d6ebf7; --sea-2:#a9d5ef; --land-other:#e3e2dc; --land-edge:#c9c8c0; --land-th:#f8f6ee; --nation-edge:#ffffff;
   --r-north:#c3e5cc; --r-ne_upper:#e4e8b4; --r-ne_lower:#ddcdf0; --r-central:#b8e4db; --r-southeast:#f4cbdd; --r-southwest:#e8d8c4;
   --e-north:#3f9d5c; --e-north-2:#23713d; --e-ne_upper:#9aa52a; --e-ne_upper-2:#666f12; --e-ne_lower:#9466cf; --e-ne_lower-2:#62389a;
   --e-central:#1aa28d; --e-central-2:#0e6a5c; --e-southeast:#d4609a; --e-southeast-2:#9c3469; --e-southwest:#a37a4e; --e-southwest-2:#6e4f2c;
@@ -74,12 +74,12 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 .map{grid-area:map;margin:0;position:relative;overflow:hidden;align-self:start;background:var(--sea-1)}
 .map svg{display:block;width:100%;height:auto}
 .land-other{fill:var(--land-other);stroke:var(--land-edge);stroke-width:.6}
-/* region hues avoid the rainfall palette: a faint tint plus a solid inner band along each region edge */
-.region{fill:color-mix(in srgb,var(--e1) 17%,var(--land-th));stroke:none;transition:fill .2s}
-.region.is-hot{fill:color-mix(in srgb,var(--e1) 32%,var(--land-th))}
-.band{fill:none;stroke:var(--e1);stroke-width:5;stroke-linejoin:round;opacity:.9}
+/* land stays neutral so rainfall is the only colour on the map; region borders are light grey lines */
+.region{fill:var(--land-th);stroke:none;transition:fill .2s}
+.region.is-hot{fill:#e6eff7}
+.band{fill:none;stroke:#98a4b0;stroke-width:2;stroke-linejoin:round}
 .relief{mix-blend-mode:multiply;opacity:.95}
-.nation-edge{fill:none;stroke:#fff;stroke-width:1.4;stroke-linejoin:round;filter:drop-shadow(0 2px 3px rgba(10,44,85,.35))}
+.nation-edge{fill:none;stroke:#4d5966;stroke-width:1.2;stroke-linejoin:round}
 .rain{opacity:.92}
 .map .cap{position:absolute;left:14px;top:12px;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.85);border:1px solid var(--hair);pointer-events:none}
 .map .cap b{display:block;font-family:var(--font-display);font-size:.82rem;color:var(--brand-deep)}
@@ -339,14 +339,9 @@ const renderHeader = () => {
 };
 
 const renderRegionBands = () => {
-  const defs = document.querySelector('#map defs');
   REGION_META.forEach(({ id }) => {
     const region = document.getElementById(`rg-${id}`);
-    region.style.setProperty('--e1', `var(--e-${id})`);
-    const d = region.getAttribute('d');
-    defs.append(sv('clipPath', { id: `cp-${id}` }, [sv('path', { d })]));
-    const band = sv('path', { d, class: 'band', 'clip-path': `url(#cp-${id})` });
-    band.style.setProperty('--e1', `var(--e-${id})`);
+    const band = sv('path', { d: region.getAttribute('d'), class: 'band' });
     document.getElementById('bands').append(band);
   });
 };
