@@ -4,3 +4,6 @@ requests
 scipy
 xarray
 pillow
+ecmwf-opendata
+cfgrib
+eccodes

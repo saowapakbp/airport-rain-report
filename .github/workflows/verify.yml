@@ -1,0 +1,49 @@
+name: daily-verify
+
+on:
+  schedule:
+    # Asia/Bangkok 08:23 and 09:23, after the 00 UTC SYNOP bulletin; the second slot is a retry (rows are de-duplicated)
+    - cron: "23 1 * * *"
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Period start date YYYY-MM-DD (blank = yesterday, Asia/Bangkok)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Bangkok
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Verify yesterday
+        run: |
+          D="${{ inputs.date }}"
+          python verify_daily.py ${D:+--date "$D"}
+
+      - name: Commit verification
+        run: |
+          git config user.name "report-bot"
+          git config user.email "report-bot@users.noreply.github.com"
+          git add verification/
+          git commit -m "verify: $(date -d yesterday +%F)" || echo "no changes"
+          git pull --rebase -q
+          git push
