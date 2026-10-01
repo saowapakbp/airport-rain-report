@@ -2,7 +2,12 @@ name: daily-report
 
 on:
   schedule:
-    - cron: "30 23 * * *"  # 06:30 Asia/Bangkok; GitHub may start scheduled runs 5-30 min late
+    # Asia/Bangkok 06:17, 06:47, 07:17, 07:47. GitHub can delay or drop scheduled runs, so later
+    # slots are retries; a run exits early once today's report has been sent (reports/sent_<date>.txt).
+    - cron: "17 23 * * *"
+    - cron: "47 23 * * *"
+    - cron: "17 0 * * *"
+    - cron: "47 0 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -29,23 +34,35 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - run: pip install -r requirements.txt
-
       - name: Resolve date
         id: when
         run: |
           D="${{ inputs.date }}"
-          echo "date=${D:-$(date +%F)}" >> "$GITHUB_OUTPUT"
+          D="${D:-$(date +%F)}"
+          echo "date=$D" >> "$GITHUB_OUTPUT"
+          SENT=false
+          [ -f "reports/sent_$D.txt" ] && SENT=true
+          echo "already_sent=$SENT" >> "$GITHUB_OUTPUT"
+
+      - name: Skip (already sent today)
+        if: ${{ github.event_name == 'schedule' && steps.when.outputs.already_sent == 'true' }}
+        run: echo "report for ${{ steps.when.outputs.date }} already sent"
+
+      - uses: actions/setup-python@v6
+        if: ${{ github.event_name != 'schedule' || steps.when.outputs.already_sent != 'true' }}
+        with:
+          python-version: "3.12"
+          cache: pip
 
       - name: Build report
-        run: python build_report.py --date "${{ steps.when.outputs.date }}"
+        id: build
+        if: ${{ github.event_name != 'schedule' || steps.when.outputs.already_sent != 'true' }}
+        run: |
+          pip install -r requirements.txt
+          python build_report.py --date "${{ steps.when.outputs.date }}"
 
       - name: Commit report images
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           git config user.name "report-bot"
           git config user.email "report-bot@users.noreply.github.com"
@@ -54,15 +71,23 @@ jobs:
           git push
 
       - name: Send to LINE
-        if: ${{ github.event_name == 'schedule' || inputs.notify }}
+        if: ${{ steps.build.outcome == 'success' && (github.event_name == 'schedule' || inputs.notify) }}
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-        run: sleep 20 && python notify_line.py --date "${{ steps.when.outputs.date }}"
+        run: |
+          sleep 20
+          python notify_line.py --date "${{ steps.when.outputs.date }}"
+          date '+%F %T %Z' > "reports/sent_${{ steps.when.outputs.date }}.txt"
+          git add reports/sent_*.txt
+          git commit -m "sent: ${{ steps.when.outputs.date }}"
+          git push
 
       - name: Notify failure
         if: ${{ failure() }}
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-        run: python notify_line.py --failed --date "${{ steps.when.outputs.date }}" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: |
+          python3 -m pip install --quiet requests
+          python3 notify_line.py --failed --date "${{ steps.when.outputs.date }}" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
