@@ -20,7 +20,7 @@ def push(messages):
 
 def report_messages(local_date, repo):
     base = RAW_BASE.format(repo=repo)
-    text = f"รายงานพยากรณ์ฝนสะสม 24 ชม. รายสนามบิน\nวันที่ {local_date} (07:00–07:00 น.)\nตรวจแล้วส่งต่อกลุ่มกองฯ ก่อน 09:00 น."
+    text = f"รายงานพยากรณ์ฝนสะสม 24 ชม. รายสนามบิน\nวันที่ {local_date} (07:00–07:00 น.)\nตรวจแล้วส่งต่อกลุ่มกองฯ"
     image = {"type": "image",
              "originalContentUrl": f"{base}/report_{local_date}.png",
              "previewImageUrl": f"{base}/report_{local_date}_preview.jpg"}

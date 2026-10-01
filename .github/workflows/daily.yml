@@ -2,12 +2,13 @@ name: daily-report
 
 on:
   schedule:
-    # Asia/Bangkok 06:17, 06:47, 07:17, 07:47. GitHub can delay or drop scheduled runs, so later
-    # slots are retries; a run exits early once today's report has been sent (reports/sent_<date>.txt).
-    - cron: "17 23 * * *"
-    - cron: "47 23 * * *"
-    - cron: "17 0 * * *"
-    - cron: "47 0 * * *"
+    # Asia/Bangkok 10:17, 10:47, 11:17, 11:47, after the 18 UTC WRFDA run is published (~10:00 ICT).
+    # GitHub can delay or drop scheduled runs, so later slots are retries; a run exits early once today's
+    # report has been sent (reports/sent_<date>.txt). Only the last slot may fall back to an older run.
+    - cron: "17 3 * * *"
+    - cron: "47 3 * * *"
+    - cron: "17 4 * * *"
+    - cron: "47 4 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -44,19 +45,28 @@ jobs:
           [ -f "reports/sent_$D.txt" ] && SENT=true
           echo "already_sent=$SENT" >> "$GITHUB_OUTPUT"
 
-      - name: Skip (already sent today)
-        if: ${{ github.event_name == 'schedule' && steps.when.outputs.already_sent == 'true' }}
-        run: echo "report for ${{ steps.when.outputs.date }} already sent"
+      - name: Wait for the 18 UTC run
+        id: ready
+        run: |
+          RUN="$(date -d "${{ steps.when.outputs.date }} -1 day" +%Y%m%d)18"
+          CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "https://hpc.tmd.go.th/static/netcdf/$RUN/$RUN.prec1hr.d02.nc")
+          READY=false
+          [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && READY=true
+          [ "${{ github.event_name }}" != "schedule" ] && READY=true
+          [ "${{ github.event.schedule }}" = "47 4 * * *" ] && READY=true
+          [ "${{ steps.when.outputs.already_sent }}" = "true" ] && [ "${{ github.event_name }}" = "schedule" ] && READY=false
+          echo "run $RUN http=$CODE ready=$READY already_sent=${{ steps.when.outputs.already_sent }}"
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v6
-        if: ${{ github.event_name != 'schedule' || steps.when.outputs.already_sent != 'true' }}
+        if: ${{ steps.ready.outputs.ready == 'true' }}
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Build report
         id: build
-        if: ${{ github.event_name != 'schedule' || steps.when.outputs.already_sent != 'true' }}
+        if: ${{ steps.ready.outputs.ready == 'true' }}
         run: |
           pip install -r requirements.txt
           python build_report.py --date "${{ steps.when.outputs.date }}"

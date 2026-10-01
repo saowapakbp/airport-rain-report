@@ -18,8 +18,8 @@ RAW_DIR = DATA_DIR / "wrfda_raw"
 GRID_DIR = DATA_DIR / "wrfda_24h_grid"
 POINT_DIR = DATA_DIR / "wrfda_24h_airports"
 MIN_NC_BYTES = 1_000_000
-# 12 UTC run of the previous day is published about 03:30 local; 00 UTC run is the fallback
-RUN_OFFSETS_H = (12, 24)
+# 18 UTC run of the previous day (01:00 ICT) is published about 10:00 ICT; 12 UTC and 00 UTC are fallbacks
+RUN_OFFSETS_H = (6, 12, 24)
 NEIGHBOR_CELLS = 3
 
 
@@ -112,7 +112,7 @@ def main():
     parser = argparse.ArgumentParser(description="TMD WRFDA d02 24 h rainfall (07:00-07:00 local) at airports")
     parser.add_argument("--start", required=True, help="forecast date YYYY-MM-DD (period starts 07:00 local)")
     parser.add_argument("--end", help="last forecast date YYYY-MM-DD (default: --start)")
-    parser.add_argument("--run", help="force model run YYYYMMDDHH (UTC); default previous day 12 UTC, then 00 UTC")
+    parser.add_argument("--run", help="force model run YYYYMMDDHH (UTC); default previous day 18 UTC, then 12 UTC, then 00 UTC")
     parser.add_argument("--keep-raw", action="store_true", help="keep the 58 MB hourly NetCDF")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
