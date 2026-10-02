@@ -1,6 +1,6 @@
 # WRFDA 12 UTC correction — cross-validated against SYNOP
 
-1701 airport-days, 61 days (2026-08-02 to 2026-10-01), 28 airports with SYNOP within 15 km; rain ≥10 mm observed 369 times. 5-fold CV grouped by ISO week (test weeks never seen in training). Updated 2026-10-03 00:34 ICT.
+1701 airport-days, 61 days (2026-08-02 to 2026-10-01), 28 airports with SYNOP within 15 km; rain ≥10 mm observed 369 times. 5-fold CV grouped by ISO week (test weeks never seen in training). Updated 2026-10-03 00:47 ICT.
 
 | method | MAE | RMSE | bias | cat_match | CSI≥0.1 | CSI≥10 | hit/miss/fa≥10 |
 |---|---|---|---|---|---|---|---|
