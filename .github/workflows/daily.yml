@@ -2,22 +2,17 @@ name: daily-report
 
 on:
   schedule:
-    # Asia/Bangkok every 15 min 09:45-12:45. GitHub gives no timing guarantee for cron (often 5-30 min late,
-    # occasionally hours), so many slots are used; the first run that gets the 18 UTC data sends, later runs
-    # see reports/sent_<date>.txt and stop.
-    - cron: "45 2 * * *"
-    - cron: "0 3 * * *"
-    - cron: "15 3 * * *"
-    - cron: "30 3 * * *"
-    - cron: "45 3 * * *"
-    - cron: "0 4 * * *"
-    - cron: "15 4 * * *"
-    - cron: "30 4 * * *"
-    - cron: "45 4 * * *"
-    - cron: "0 5 * * *"
-    - cron: "15 5 * * *"
-    - cron: "30 5 * * *"
-    - cron: "45 5 * * *"
+    # Asia/Bangkok every 15 min 05:00-06:45 (UTC 22:00-23:45 of the previous day). GitHub gives no timing
+    # guarantee for cron, so cron-job.org is the primary trigger and these slots are a backup; the first run
+    # that gets the 12 UTC data sends, later runs see reports/sent_<date>.txt and stop.
+    - cron: "0 22 * * *"
+    - cron: "15 22 * * *"
+    - cron: "30 22 * * *"
+    - cron: "45 22 * * *"
+    - cron: "0 23 * * *"
+    - cron: "15 23 * * *"
+    - cron: "30 23 * * *"
+    - cron: "45 23 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -28,7 +23,7 @@ on:
         type: boolean
         default: true
       auto:
-        description: "External scheduler call: wait for the 18 UTC run and skip if already sent today"
+        description: "External scheduler call: wait for the 12 UTC run and skip if already sent today"
         type: boolean
         default: false
       final:
@@ -62,23 +57,23 @@ jobs:
           [ -f "reports/sent_$D.txt" ] && SENT=true
           echo "already_sent=$SENT" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for the 18 UTC run
+      - name: Wait for the 12 UTC run
         id: ready
         run: |
-          RUN="$(date -d "${{ steps.when.outputs.date }} -1 day" +%Y%m%d)18"
+          RUN="$(date -d "${{ steps.when.outputs.date }} -1 day" +%Y%m%d)12"
           URL="https://hpc.tmd.go.th/static/netcdf/$RUN/$RUN.prec1hr.d02.nc"
           AUTO=false
           [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.auto }}" = "true" ] && AUTO=true
           [ "$AUTO" = "true" ] && [ "${{ steps.when.outputs.already_sent }}" = "true" ] && { echo "already sent"; echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0; }
           [ "$AUTO" = "false" ] && { echo "manual run"; echo "ready=true" >> "$GITHUB_OUTPUT"; exit 0; }
-          # poll up to 40 min for the 18 UTC file; an older run is allowed only after 12:30 ICT or on the final call,
+          # poll up to 40 min for the 12 UTC file; an older run is allowed only after 06:30 ICT or on the final call,
           # otherwise this run stops without sending and a later slot tries again
           READY=false
           for i in $(seq 1 20); do
             CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "$URL")
             echo "$(date +%T) $RUN http=$CODE"
             [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && { READY=true; break; }
-            [ "$(date +%H%M)" -ge 1230 ] || [ "${{ inputs.final }}" = "true" ] && { READY=true; echo "fallback allowed"; break; }
+            [ "$(date +%H%M)" -ge 630 ] || [ "${{ inputs.final }}" = "true" ] && { READY=true; echo "fallback allowed"; break; }
             sleep 120
           done
           echo "ready=$READY"

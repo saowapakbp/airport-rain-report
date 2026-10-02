@@ -1,10 +1,10 @@
 import argparse
 import logging
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 
 from common import CATEGORIES, HERE, categorize, load_airports, period_start_utc
 from compare_ecmwf_ifs import at_airports, download_tp, ifs_24h
@@ -16,24 +16,55 @@ log = logging.getLogger("verify")
 VERIFY_DIR = HERE / "verification"
 HISTORY = VERIFY_DIR / "verify_history.csv"
 SUMMARY = VERIFY_DIR / "summary.md"
+AWOS_MANUAL = VERIFY_DIR / "awos_manual.csv"
 BANGKOK = timezone(timedelta(hours=7))
-MODELS = {"wrfda_mm": "WRFDA d02 (3 km)", "ifs_mm": "ECMWF IFS (0.25°)"}
+TRACE_MM = 0.05
+MODELS = {"wrfda12_mm": "WRFDA 12 UTC (19:00 ICT)", "wrfda18_mm": "WRFDA 18 UTC (01:00 ICT)",
+          "ifs12_mm": "ECMWF IFS 12 UTC (0.25°)"}
+TRUTHS = {"awos_mm": "AWOS (airport)", "obs24_mm": "SYNOP (nearest station)"}
 THRESHOLDS_MM = (0.1, 10.0, 35.1)
 KEY = ["date", "icao"]
 
 
+def run_before(local_date, hours):
+    return period_start_utc(local_date) - timedelta(hours=hours)
+
+
+def wrfda_column(local_date, offset_h, airports):
+    try:
+        points = fetch_wrfda(local_date, run_before(local_date, offset_h), False, airports)
+        return points.set_index("icao")["rain24_mm"]
+    except requests.HTTPError as err:
+        log.warning("WRFDA run %s not available (%s)", run_before(local_date, offset_h), err)
+        return pd.Series(dtype=float)
+
+
+def ifs_column(local_date, airports):
+    run = run_before(local_date, 12).replace(tzinfo=None)
+    steps = (12, 36)
+    return pd.Series(at_airports(ifs_24h(download_tp(run, steps), steps), airports), index=airports["icao"])
+
+
+def awos_column(local_date):
+    awos = pd.read_csv(AWOS_MANUAL, dtype=str) if AWOS_MANUAL.exists() else pd.DataFrame(columns=["date", "icao", "awos_raw"])
+    day = awos[awos["date"] == local_date].set_index("icao")["awos_raw"]
+    return pd.to_numeric(day.replace({"T": str(TRACE_MM)}), errors="coerce")
+
+
 def verify_day(local_date, airports):
-    wrf = fetch_wrfda(local_date, None, False, airports)
-    run_tag = wrf["run"].iloc[0]
-    run = datetime.strptime(run_tag, "%Y%m%d%H")
-    lead = int((period_start_utc(local_date).replace(tzinfo=None) - run) / timedelta(hours=1))
-    steps = (lead, lead + 24)
-    ifs = at_airports(ifs_24h(download_tp(run, steps), steps), airports)
-    obs = fetch_synop(local_date, airports)
-    return (airports[["icao", "region"]]
-            .assign(date=local_date, run=run_tag, ifs_mm=ifs)
-            .merge(wrf[["icao", "rain24_mm"]].rename(columns={"rain24_mm": "wrfda_mm"}), on="icao")
-            .merge(obs[["icao", "obs24_mm", "synop_wmo", "synop_dist_km", "synop_is_near", "decoded_from"]], on="icao"))
+    obs = fetch_synop(local_date, airports).set_index("icao")
+    frame = airports[["icao", "region"]].set_index("icao").assign(
+        date=local_date,
+        wrfda12_mm=wrfda_column(local_date, 12, airports),
+        wrfda18_mm=wrfda_column(local_date, 6, airports),
+        ifs12_mm=ifs_column(local_date, airports),
+        obs24_mm=obs["obs24_mm"],
+        awos_mm=awos_column(local_date),
+        synop_wmo=obs["synop_wmo"],
+        synop_dist_km=obs["synop_dist_km"],
+        synop_is_near=obs["synop_is_near"],
+    )
+    return frame.reset_index()
 
 
 def append_history(day):
@@ -44,10 +75,16 @@ def append_history(day):
     return merged
 
 
+def refresh_awos(history):
+    days = [awos_column(d).rename("awos_mm").to_frame().assign(date=d).reset_index() for d in history["date"].unique()]
+    awos = pd.concat(days, ignore_index=True) if days else pd.DataFrame(columns=["icao", "awos_mm", "date"])
+    return history.drop(columns=["awos_mm"]).merge(awos, on=KEY, how="left")
+
+
 def scores(f, o):
     err = f - o
     row = {"n": len(o), "bias": err.mean(), "MAE": err.abs().mean(), "RMSE": float(np.sqrt((err ** 2).mean())),
-           "r": f.corr(o), "cat_match": float(np.mean([categorize(a) == categorize(b) for a, b in zip(f, o)]))}
+           "cat_match": float(np.mean([categorize(a) == categorize(b) for a, b in zip(f, o)]))}
     for t in THRESHOLDS_MM:
         hit, miss, fa = ((f >= t) & (o >= t)).sum(), ((f < t) & (o >= t)).sum(), ((f >= t) & (o < t)).sum()
         row[f"POD≥{t:g}"] = hit / max(hit + miss, 1)
@@ -58,11 +95,13 @@ def scores(f, o):
 
 
 def score_table(history):
-    valid = history.dropna(subset=["obs24_mm", *MODELS])
-    subsets = {"ทุกสนามบิน": valid, "สถานีห่าง ≤ 15 กม.": valid[valid["synop_is_near"].astype(bool)]}
-    rows = [{"ชุดข้อมูล": name, "แบบจำลอง": label, **scores(sub[col], sub["obs24_mm"])}
-            for name, sub in subsets.items() for col, label in MODELS.items()]
-    return pd.DataFrame(rows), valid["date"].nunique()
+    rows = []
+    for truth, truth_label in TRUTHS.items():
+        for col, label in MODELS.items():
+            pair = history.dropna(subset=[truth, col])
+            rows.append({"truth": truth_label, "model": label, "days": pair["date"].nunique(),
+                         **scores(pair[col], pair[truth])}) if len(pair) else None
+    return pd.DataFrame(rows)
 
 
 def markdown_table(frame):
@@ -73,43 +112,43 @@ def markdown_table(frame):
 
 
 def write_summary(history):
-    table, days = score_table(history)
-    by_region = (history.dropna(subset=["obs24_mm", *MODELS])
-                 .groupby("region")[["wrfda_mm", "ifs_mm", "obs24_mm"]].mean().round(1))
+    table = score_table(history)
+    by_region = history.groupby("region")[[*MODELS, *TRUTHS]].mean().round(1).reset_index()
     lines = [
-        "# Verification: WRFDA vs ECMWF IFS vs SYNOP",
+        "# Verification: WRFDA 12/18 UTC and ECMWF IFS vs AWOS and SYNOP",
         "",
-        f"24 h rainfall 07:00–07:00 local at {history['icao'].nunique()} airports · {days} days "
+        f"24 h rainfall 07:00–07:00 ICT at {history['icao'].nunique()} airports · {history['date'].nunique()} days "
         f"({history['date'].min()} to {history['date'].max()}) · updated {datetime.now(BANGKOK):%Y-%m-%d %H:%M} ICT",
         "",
-        "Truth: GTS SYNOP 24 h rain at 00 UTC (group 333 7RRRR). Both models use the run the daily report used "
-        "(12 UTC previous day, 00 UTC fallback), nearest grid point. ECMWF open data (CC BY 4.0).",
+        "Models at the nearest grid point. AWOS from verification/awos_manual.csv (T = 0.05 mm, missing/fault excluded); "
+        "SYNOP 24 h rain at 00 UTC (group 333 7RRRR). ECMWF open data (CC BY 4.0).",
         "",
         "## Scores",
         "",
-        markdown_table(table),
+        markdown_table(table) if len(table) else "No pairs yet.",
         "",
         "## Mean 24 h rain by region (mm)",
         "",
-        markdown_table(by_region.reset_index()),
+        markdown_table(by_region),
         "",
-        f"Categories: {', '.join(f'{k} < {v:g}' for k, v in CATEGORIES[:-1])} mm. One day of scores is noise; read them after a month or more.",
+        f"Categories: {', '.join(f'{k} < {v:g}' for k, v in CATEGORIES[:-1])} mm. "
+        "A few days of scores are noise; read them after a month or more.",
     ]
     SUMMARY.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main():
     yesterday = (datetime.now(BANGKOK) - timedelta(days=1)).strftime("%Y-%m-%d")
-    parser = argparse.ArgumentParser(description="Append yesterday's WRFDA/IFS vs SYNOP comparison and refresh the summary")
+    parser = argparse.ArgumentParser(description="Append a day of WRFDA 12/18 UTC and IFS vs AWOS/SYNOP and refresh the summary")
     parser.add_argument("--date", default=yesterday, help="period start date YYYY-MM-DD (default: yesterday, ICT)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-    day = verify_day(args.date, load_airports())
-    history = append_history(day)
+    history = refresh_awos(append_history(verify_day(args.date, load_airports())))
+    history.sort_values(KEY).to_csv(HISTORY, index=False, encoding="utf-8-sig")
     write_summary(history)
-    log.info("%s: %d rows, history %d rows -> %s", args.date, len(day), len(history), Path(SUMMARY).name)
-    print(day[["icao", "wrfda_mm", "ifs_mm", "obs24_mm"]].to_string(index=False))
+    log.info("%s done, history %d rows", args.date, len(history))
+    print(history[history["date"] == args.date][["icao", *MODELS, *TRUTHS]].to_string(index=False))
 
 
 if __name__ == "__main__":
