@@ -17,7 +17,7 @@ from PIL import Image, ImageFilter
 
 from common import HERE, load_airports
 from fetch_wrfda_24h import GRID_DIR, process_date
-from build_training_set import grid_index
+from build_training_set import airport_features, grid_index
 from rain_probability import probability_percent
 
 log = logging.getLogger("report")
@@ -34,8 +34,7 @@ VIEWPORT = (1560, 965)
 SCALE = 1.5
 PREVIEW_WIDTH = 1040
 DRY_MM = 0.1
-ARP_RADIUS_KM = 8.0
-KM_PER_DEG_LAT = 111.2
+AREA_RADIUS_CELLS = 7
 # must match MAP in report_template.html
 MAP_LON0, MAP_LAT1, MAP_K = 97.0, 20.7, 40.0
 MAP_COS = math.cos(math.radians(13))
@@ -82,22 +81,13 @@ def report_meta(local_date, run_tag):
     }
 
 
-def arp_mean(values, lons, lats, lon, lat):
-    # mean of grid cells whose centres lie within ARP_RADIUS_KM of the aerodrome reference point
-    km_x = (lons - lon) * KM_PER_DEG_LAT * np.cos(np.radians(lat))
-    km_y = (lats - lat) * KM_PER_DEG_LAT
-    inside = (km_y[:, None] ** 2 + km_x[None, :] ** 2) <= ARP_RADIUS_KM ** 2
-    return float(values[inside].mean())
-
-
 def display_values(total, airports):
-    # dry at the ARP grid point stays dry; otherwise show the mean within 8 km of the ARP. Area means cut large
-    # false alarms (fc >= 35 mm, obs < 10 mm) from 14 to 5 in Aug-Sep 2026 cross-checks against SYNOP
+    # dry at the ARP grid point stays dry; otherwise show the area mean around the ARP (15x15 cells), the option that
+    # cut large false alarms (fc >= 35 mm, obs < 10 mm) from 14 to 5 and raised CSI>=10 mm from 0.19 to 0.23 (Aug-Sep 2026 vs SYNOP)
     ix, iy = grid_index(total, airports)
-    lons, lats, values = total["x"].values, total["y"].values, total.values
-    point = [float(values[y, x]) for y, x in zip(iy, ix)]
-    area = [arp_mean(values, lons, lats, lon, lat) for lon, lat in zip(airports["lon"], airports["lat"])]
-    return {icao: (p if p < DRY_MM else a) for icao, p, a in zip(airports["icao"], point, area)}
+    feats = [airport_features(total.values, y, x) for y, x in zip(iy, ix)]
+    return {icao: (f["point_mm"] if f["point_mm"] < DRY_MM else f[f"mean_r{AREA_RADIUS_CELLS}"])
+            for icao, f in zip(airports["icao"], feats)}
 
 
 def airport_rows(airports, values, probs):
