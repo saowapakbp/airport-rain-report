@@ -7,3 +7,6 @@ pillow
 ecmwf-opendata
 cfgrib
 eccodes
+scikit-learn
+xgboost
+joblib

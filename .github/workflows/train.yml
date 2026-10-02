@@ -1,0 +1,41 @@
+name: weekly-train
+
+on:
+  schedule:
+    - cron: "33 3 * * 1"  # Monday 10:33 ICT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-train
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Bangkok
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Cross-validate corrections and refit models
+        run: python train_correction.py --run 12
+
+      - name: Commit results
+        run: |
+          git config user.name "report-bot"
+          git config user.email "report-bot@users.noreply.github.com"
+          git add training/results.md training/cv_predictions.csv training/models/
+          git commit -m "train: $(date +%F)" || echo "no changes"
+          git pull --rebase -q
+          git push
