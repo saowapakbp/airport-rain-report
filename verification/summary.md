@@ -1,6 +1,6 @@
 # Verification: WRFDA vs ECMWF IFS vs SYNOP
 
-24 h rainfall 07:00–07:00 local at 34 airports · 2 days (2026-09-30 to 2026-10-01) · updated 2026-10-02 14:06 ICT
+24 h rainfall 07:00–07:00 local at 34 airports · 2 days (2026-09-30 to 2026-10-01) · updated 2026-10-02 15:42 ICT
 
 Truth: GTS SYNOP 24 h rain at 00 UTC (group 333 7RRRR). Both models use the run the daily report used (12 UTC previous day, 00 UTC fallback), nearest grid point. ECMWF open data (CC BY 4.0).
 
