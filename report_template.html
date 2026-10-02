@@ -63,7 +63,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 .legend li b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .legend li span{color:var(--ink-soft)}
 .wx{width:28px;height:22px;display:block}
-.source{padding:14px 16px}
+.source{padding:14px 16px;flex:1}
 .source .v{font-family:var(--font-display);font-weight:700;font-size:1.02rem;line-height:1.35;margin:6px 0 10px;color:var(--brand-deep)}
 .source dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:.82rem}
 .source dt{color:var(--ink-faint)}
@@ -71,7 +71,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 .source dd small{display:block;font-weight:500;color:var(--ink-soft);font-size:.74rem}
 
 /* map */
-.map{grid-area:map;margin:0;position:relative;overflow:hidden;align-self:start;background:var(--sea-1)}
+.map{grid-area:map;margin:0;position:relative;overflow:hidden;align-self:stretch;display:flex;align-items:center;background:var(--sea-1)}
 .map svg{display:block;width:100%;height:auto}
 .land-other{fill:var(--land-other);stroke:var(--land-edge);stroke-width:.6}
 /* region fills are kept pale so the rainfall layer stays the strongest colour on the map */
@@ -107,6 +107,8 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 
 /* tables */
 .tables-wrap{grid-area:tables;display:flex;flex-direction:column;gap:12px;min-width:0}
+.tables{flex:1}
+.stack > .region-card:last-child{flex:1}
 .tables-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:12px 18px}
 .legend-row{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--hair)}
 .legend-title{font-family:var(--font-display);font-weight:700;font-size:.86rem;color:var(--brand-deep);line-height:1.25}
@@ -121,7 +123,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0}
 .tables-head > svg{width:30px;height:30px;color:var(--brand);flex:none}
 .tables-head h2{font-size:1.18rem;font-weight:700;color:var(--brand-deep);line-height:1.2;white-space:nowrap}
 .tables-head h2 small{font-family:var(--font-body);font-weight:500;font-size:.86rem;color:var(--ink-soft);margin-left:6px}
-.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
 .stack{display:flex;flex-direction:column;gap:12px;min-width:0}
 .region-card{overflow:hidden}
 .region-card header{display:flex;align-items:center;gap:12px;padding:6px 14px 6px 10px;border-bottom:1px solid var(--hair);
