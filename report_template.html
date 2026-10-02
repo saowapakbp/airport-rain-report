@@ -152,11 +152,9 @@ td.prob{width:52px;text-align:center;padding-right:10px}
 .pp{display:inline-block;min-width:36px;padding:1px 6px;border-radius:999px;font-size:.74rem;font-weight:700;font-variant-numeric:tabular-nums;background:#eef2f6;color:#7d8ea3}
 .pp.mid{background:#fff1d6;color:#b26b00}
 .pp.hi{background:#ffe0c2;color:#c2410c}
-.prob-note{font-size:.76rem;color:var(--ink-soft);line-height:1.5;padding:8px 10px;border-radius:10px;background:#fff8ec;border:1px solid #f6dfb5}
-.prob-note .pp{margin-right:5px}
+.prob-note{font-size:.76rem;color:var(--ink-soft);white-space:nowrap}
 .prob-note b{color:var(--brand-deep);font-weight:700}
-.pn-sub{margin-top:3px;font-size:.72rem}
-.pn-sub .pp{margin:0 3px 0 6px;min-width:0;font-size:.68rem}
+.prob-note .pp{margin:0 3px 0 6px;min-width:0;font-size:.7rem}
 .c-none{color:var(--t-none)} .c-na{color:var(--t-na)} .c-light{color:var(--t-light)} .c-mod{color:var(--t-mod)}
 .c-heavy{color:var(--t-heavy)} .c-extreme{color:var(--t-extreme)}
 
@@ -267,7 +265,7 @@ td.prob{width:52px;text-align:center;padding-right:10px}
       <div class="legend-row" role="list" aria-label="เกณฑ์ปริมาณฝนสะสม 24 ชั่วโมง (มม.)">
         <div class="legend-title">เกณฑ์ปริมาณฝนสะสม 24 ชั่วโมง<small>(มิลลิเมตร)</small></div>
         <div class="chips" id="legend-list"></div>
-        <div class="prob-note" id="prob-note" hidden><div class="pn-main"><span class="pp mid">40%</span><b>โอกาสเกิดฝนปานกลางขึ้นไป (≥10 มม.) ที่สนามบิน</b> — เช่น 40% หมายถึง ในสภาพอากาศคล้ายกันนี้ 10 วัน จะมีฝนถึง 10 มม. ราว 4 วัน</div><div class="pn-sub">เป็นคนละค่ากับปริมาณฝนพยากรณ์ และไม่ใช่ความมั่นใจของตัวเลข · <span class="pp">10–20%</span> ต่ำ <span class="pp mid">30–40%</span> ปานกลาง <span class="pp hi">≥50%</span> สูง</div></div>
+        <div class="prob-note" id="prob-note" hidden><b>%</b> คือ โอกาสเกิดฝนปานกลางขึ้นไป (≥10 มม.) ที่สนามบิน · <span class="pp">10–20%</span> ต่ำ <span class="pp mid">30–40%</span> ปานกลาง <span class="pp hi">≥50%</span> สูง</div>
       </div>
     </div>
     <div class="tables" id="tables"></div>
