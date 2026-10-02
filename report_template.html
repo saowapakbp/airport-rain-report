@@ -140,12 +140,18 @@ tr.is-hot,tr:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transp
 td{padding:5px 0;vertical-align:middle}
 td.code{width:54px;padding-left:14px;font-size:.78rem;font-weight:700;letter-spacing:.04em;color:var(--brand-deep)}
 td.name{font-size:.9rem;line-height:1.3;padding-right:8px}
-td.bar{width:64px;padding-right:10px}
+td.bar{width:54px;padding-right:8px}
 .track{height:7px;border-radius:4px;background:#e9eff6;overflow:hidden}
 .fill{height:100%;border-radius:4px;background:var(--c)}
 td.val{width:62px;text-align:right;font-weight:700;font-size:1rem;color:var(--c);white-space:nowrap}
 td.val.muted{font-size:.78rem;font-weight:600;color:var(--t-none)}
-td.ico{width:44px;padding:0 12px 0 8px}
+td.ico{width:40px;padding:0 10px 0 4px}
+td.prob{width:44px;text-align:center}
+.pp{display:inline-block;min-width:36px;padding:1px 6px;border-radius:999px;font-size:.74rem;font-weight:700;font-variant-numeric:tabular-nums;background:#eef2f6;color:#7d8ea3}
+.pp.mid{background:#fff1d6;color:#b26b00}
+.pp.hi{background:#ffe0c2;color:#c2410c}
+.prob-note{font-size:.74rem;color:var(--ink-soft)}
+.prob-note .pp{margin-right:4px}
 .c-none{color:var(--t-none)} .c-na{color:var(--t-na)} .c-light{color:var(--t-light)} .c-mod{color:var(--t-mod)}
 .c-heavy{color:var(--t-heavy)} .c-extreme{color:var(--t-extreme)}
 
@@ -256,6 +262,7 @@ td.ico{width:44px;padding:0 12px 0 8px}
       <div class="legend-row" role="list" aria-label="เกณฑ์ปริมาณฝนสะสม 24 ชั่วโมง (มม.)">
         <div class="legend-title">เกณฑ์ปริมาณฝนสะสม 24 ชม.<small>(มม.)</small></div>
         <div class="chips" id="legend-list"></div>
+        <div class="prob-note" id="prob-note" hidden><span class="pp mid">40%</span>โอกาสฝน ≥10 มม. ที่สนามบิน ปรับแก้ทางสถิติจาก WRFDA เทียบค่าตรวจวัด SYNOP (ค่าแนะแนว)</div>
       </div>
     </div>
     <div class="tables" id="tables"></div>
@@ -293,7 +300,7 @@ const REGION_META = [
 ];
 const STACKS = [['north', 'central', 'southwest'], ['ne_upper', 'ne_lower', 'southeast']];
 
-// Filled by build_report.py: rows [region, icao, name, rain_mm | 'nodata', lat, lon, label_dx, label_dy]
+// Filled by build_report.py: rows [region, icao, name, rain_mm | 'nodata', lat, lon, label_dx, label_dy, prob10_percent | null]
 const AIRPORT_ROWS = __AIRPORTS__;
 const REPORT = __REPORT__;
 
@@ -326,8 +333,10 @@ const emblem = id => {
   return box;
 };
 
-const airports = AIRPORT_ROWS.map(([region, code, name, value, lat, lon, dx, dy], i) =>
-  ({ key: `ap${i}`, region, code, name, value, lat, lon, dx, dy, cls: classify(value).key }));
+const airports = AIRPORT_ROWS.map(([region, code, name, value, lat, lon, dx, dy, prob], i) =>
+  ({ key: `ap${i}`, region, code, name, value, lat, lon, dx, dy, prob, cls: classify(value).key }));
+const probLevel = p => (p >= 50 ? 'pp hi' : p >= 30 ? 'pp mid' : 'pp');
+const probCell = a => (REPORT.probShown ? [el('td', { class: 'prob', title: 'โอกาสฝน ≥10 มม.' }, [el('span', { class: probLevel(a.prob ?? 0) }, [`${a.prob ?? '–'}%`])])] : []);
 const regions = REGION_META.map(m => ({ ...m, airports: airports.filter(a => a.region === m.id) }));
 const byId = Object.fromEntries(regions.map(r => [r.id, r]));
 
@@ -405,6 +414,7 @@ const renderRow = a => {
     el('td', { class: 'name', title: a.name }, [short(a.name)]),
     el('td', { class: 'bar' }, [el('div', { class: 'track' }, [el('div', { class: 'fill', style: `width:${barWidth(a.value)}%` })])]),
     el('td', { class: muted ? 'val muted' : 'val' }, [fmt(a.value)]),
+    ...probCell(a),
     el('td', { class: 'ico' }, [wx(a.cls)])
   ]);
   bindHover(row, a);
@@ -420,6 +430,7 @@ const renderCard = r => el('article', { class: 'card region-card', style: `--rc:
 ]);
 
 renderHeader();
+document.getElementById('prob-note').hidden = !REPORT.probShown;
 renderRegionBands();
 renderLegend();
 renderRain();

@@ -29,13 +29,15 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Cross-validate corrections and refit models
-        run: python train_correction.py --run 12
+        run: |
+          python train_correction.py --run 12
+          python train_probability.py --run 12
 
       - name: Commit results
         run: |
           git config user.name "report-bot"
           git config user.email "report-bot@users.noreply.github.com"
-          git add training/results.md training/cv_predictions.csv training/models/
+          git add training/results.md training/results_prob10.md training/cv_predictions.csv training/models/
           git commit -m "train: $(date +%F)" || echo "no changes"
           git pull --rebase -q
           git push

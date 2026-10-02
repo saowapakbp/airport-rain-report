@@ -17,6 +17,7 @@ from PIL import Image, ImageFilter
 
 from common import HERE, load_airports
 from fetch_wrfda_24h import GRID_DIR, process_date
+from rain_probability import probability_percent
 
 log = logging.getLogger("report")
 
@@ -77,10 +78,10 @@ def report_meta(local_date, run_tag):
     }
 
 
-def airport_rows(points, airports):
+def airport_rows(points, airports, probs):
     merged = airports.merge(points[["icao", "rain24_mm"]], on="icao", how="left")
-    return [[r.region, r.icao, r.name_th, round(float(r.rain24_mm), 1), r.lat, r.lon, int(r.label_dx), int(r.label_dy)]
-            for r in merged.itertuples()]
+    return [[r.region, r.icao, r.name_th, round(float(r.rain24_mm), 1), r.lat, r.lon, int(r.label_dx), int(r.label_dy),
+             probs.get(r.icao)] for r in merged.itertuples()]
 
 
 def project(lon, lat):
@@ -170,7 +171,9 @@ def main():
     points = process_date(args.date, run, False, airports)
     run_tag = points["run"].iloc[0]
     meta = {**report_meta(args.date, run_tag), "overlay": rain_overlay(args.date, run_tag)}
-    html = write_html(args.date, airport_rows(points, airports), meta)
+    with xr.open_dataset(GRID_DIR / f"wrfda_d02_24h_{args.date}_run{run_tag}.nc", engine="scipy") as ds:
+        probs = probability_percent(ds["rain24_mm"].load(), airports, args.date)
+    html = write_html(args.date, airport_rows(points, airports, probs), {**meta, "probShown": bool(probs)})
     log.info("html -> %s (run %s)", html, meta["run"])
     if args.no_png:
         return
