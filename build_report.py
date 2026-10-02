@@ -17,6 +17,7 @@ from PIL import Image, ImageFilter
 
 from common import HERE, load_airports
 from fetch_wrfda_24h import GRID_DIR, process_date
+from build_training_set import airport_features, grid_index
 from rain_probability import probability_percent
 
 log = logging.getLogger("report")
@@ -29,9 +30,11 @@ THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มี�
 THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
                      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
 BUDDHIST_OFFSET = 543
-VIEWPORT = (1560, 1010)
+VIEWPORT = (1560, 1080)
 SCALE = 1.5
 PREVIEW_WIDTH = 1040
+DRY_MM = 0.1
+AREA_RADIUS_CELLS = 7
 # must match MAP in report_template.html
 MAP_LON0, MAP_LAT1, MAP_K = 97.0, 20.7, 40.0
 MAP_COS = math.cos(math.radians(13))
@@ -78,10 +81,18 @@ def report_meta(local_date, run_tag):
     }
 
 
-def airport_rows(points, airports, probs):
-    merged = airports.merge(points[["icao", "rain24_mm"]], on="icao", how="left")
-    return [[r.region, r.icao, r.name_th, round(float(r.rain24_mm), 1), r.lat, r.lon, int(r.label_dx), int(r.label_dy),
-             probs.get(r.icao)] for r in merged.itertuples()]
+def display_values(total, airports):
+    # dry at the airport grid point stays dry; otherwise show the mean over ~20 km radius, which cut large
+    # false alarms (fc >= 35 mm, obs < 10 mm) from 14 to 5 in Aug-Sep 2026 cross-checks against SYNOP
+    ix, iy = grid_index(total, airports)
+    feats = [airport_features(total.values, y, x) for y, x in zip(iy, ix)]
+    values = [f["point_mm"] if f["point_mm"] < DRY_MM else f[f"mean_r{AREA_RADIUS_CELLS}"] for f in feats]
+    return dict(zip(airports["icao"], values))
+
+
+def airport_rows(airports, values, probs):
+    return [[r.region, r.icao, r.name_th, round(float(values[r.icao]), 1), r.lat, r.lon, int(r.label_dx), int(r.label_dy),
+             probs.get(r.icao)] for r in airports.itertuples()]
 
 
 def project(lon, lat):
@@ -172,8 +183,10 @@ def main():
     run_tag = points["run"].iloc[0]
     meta = {**report_meta(args.date, run_tag), "overlay": rain_overlay(args.date, run_tag)}
     with xr.open_dataset(GRID_DIR / f"wrfda_d02_24h_{args.date}_run{run_tag}.nc", engine="scipy") as ds:
-        probs = probability_percent(ds["rain24_mm"].load(), airports, args.date)
-    html = write_html(args.date, airport_rows(points, airports, probs), {**meta, "probShown": bool(probs)})
+        total = ds["rain24_mm"].load()
+    probs = probability_percent(total, airports, args.date)
+    rows = airport_rows(airports, display_values(total, airports), probs)
+    html = write_html(args.date, rows, {**meta, "probShown": bool(probs)})
     log.info("html -> %s (run %s)", html, meta["run"])
     if args.no_png:
         return
