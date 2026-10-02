@@ -71,15 +71,18 @@ jobs:
           [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.auto }}" = "true" ] && AUTO=true
           [ "$AUTO" = "true" ] && [ "${{ steps.when.outputs.already_sent }}" = "true" ] && { echo "already sent"; echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0; }
           [ "$AUTO" = "false" ] && { echo "manual run"; echo "ready=true" >> "$GITHUB_OUTPUT"; exit 0; }
-          # poll up to 40 min; after 12:30 ICT give up waiting and let build_report fall back to an older run
+          # poll up to 40 min for the 18 UTC file; an older run is allowed only after 12:30 ICT or on the final call,
+          # otherwise this run stops without sending and a later slot tries again
+          READY=false
           for i in $(seq 1 20); do
             CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "$URL")
             echo "$(date +%T) $RUN http=$CODE"
-            [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && break
-            [ "$(date +%H%M)" -ge 1230 ] || [ "${{ inputs.final }}" = "true" ] && break
+            [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && { READY=true; break; }
+            [ "$(date +%H%M)" -ge 1230 ] || [ "${{ inputs.final }}" = "true" ] && { READY=true; echo "fallback allowed"; break; }
             sleep 120
           done
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "ready=$READY"
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v6
         if: ${{ steps.ready.outputs.ready == 'true' }}
