@@ -2,13 +2,22 @@ name: daily-report
 
 on:
   schedule:
-    # Asia/Bangkok 10:17, 10:47, 11:17, 11:47, after the 18 UTC WRFDA run is published (~10:00 ICT).
-    # GitHub can delay or drop scheduled runs, so later slots are retries; a run exits early once today's
-    # report has been sent (reports/sent_<date>.txt). Only the last slot may fall back to an older run.
-    - cron: "17 3 * * *"
-    - cron: "47 3 * * *"
-    - cron: "17 4 * * *"
-    - cron: "47 4 * * *"
+    # Asia/Bangkok every 15 min 09:45-12:45. GitHub gives no timing guarantee for cron (often 5-30 min late,
+    # occasionally hours), so many slots are used; the first run that gets the 18 UTC data sends, later runs
+    # see reports/sent_<date>.txt and stop.
+    - cron: "45 2 * * *"
+    - cron: "0 3 * * *"
+    - cron: "15 3 * * *"
+    - cron: "30 3 * * *"
+    - cron: "45 3 * * *"
+    - cron: "0 4 * * *"
+    - cron: "15 4 * * *"
+    - cron: "30 4 * * *"
+    - cron: "45 4 * * *"
+    - cron: "0 5 * * *"
+    - cron: "15 5 * * *"
+    - cron: "30 5 * * *"
+    - cron: "45 5 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -37,7 +46,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 70
     env:
       TZ: Asia/Bangkok
     steps:
@@ -57,16 +66,20 @@ jobs:
         id: ready
         run: |
           RUN="$(date -d "${{ steps.when.outputs.date }} -1 day" +%Y%m%d)18"
-          CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "https://hpc.tmd.go.th/static/netcdf/$RUN/$RUN.prec1hr.d02.nc")
-          READY=false
-          [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && READY=true
+          URL="https://hpc.tmd.go.th/static/netcdf/$RUN/$RUN.prec1hr.d02.nc"
           AUTO=false
           [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.auto }}" = "true" ] && AUTO=true
-          [ "$AUTO" = "false" ] && READY=true
-          [ "${{ github.event.schedule }}" = "47 4 * * *" ] || [ "${{ inputs.final }}" = "true" ] && READY=true
-          [ "${{ steps.when.outputs.already_sent }}" = "true" ] && [ "$AUTO" = "true" ] && READY=false
-          echo "run $RUN http=$CODE ready=$READY already_sent=${{ steps.when.outputs.already_sent }}"
-          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+          [ "$AUTO" = "true" ] && [ "${{ steps.when.outputs.already_sent }}" = "true" ] && { echo "already sent"; echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          [ "$AUTO" = "false" ] && { echo "manual run"; echo "ready=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          # poll up to 40 min; after 12:30 ICT give up waiting and let build_report fall back to an older run
+          for i in $(seq 1 20); do
+            CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "$URL")
+            echo "$(date +%T) $RUN http=$CODE"
+            [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && break
+            [ "$(date +%H%M)" -ge 1230 ] || [ "${{ inputs.final }}" = "true" ] && break
+            sleep 120
+          done
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v6
         if: ${{ steps.ready.outputs.ready == 'true' }}
