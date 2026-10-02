@@ -30,11 +30,11 @@ THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มี�
 THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
                      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
 BUDDHIST_OFFSET = 543
-VIEWPORT = (1560, 1080)
+VIEWPORT = (1560, 1015)
 SCALE = 1.5
 PREVIEW_WIDTH = 1040
 DRY_MM = 0.1
-AREA_RADIUS_CELLS = 7
+AREA_RADIUS_CELLS = 3
 # must match MAP in report_template.html
 MAP_LON0, MAP_LAT1, MAP_K = 97.0, 20.7, 40.0
 MAP_COS = math.cos(math.radians(13))
@@ -82,8 +82,8 @@ def report_meta(local_date, run_tag):
 
 
 def display_values(total, airports):
-    # dry at the airport grid point stays dry; otherwise show the mean over ~20 km radius, which cut large
-    # false alarms (fc >= 35 mm, obs < 10 mm) from 14 to 5 in Aug-Sep 2026 cross-checks against SYNOP
+    # dry at the airport grid point stays dry; otherwise show the mean over a 7x7-cell box (~10 km radius), which cut
+    # large false alarms (fc >= 35 mm, obs < 10 mm) from 14 to 5 in Aug-Sep 2026 cross-checks against SYNOP
     ix, iy = grid_index(total, airports)
     feats = [airport_features(total.values, y, x) for y, x in zip(iy, ix)]
     values = [f["point_mm"] if f["point_mm"] < DRY_MM else f[f"mean_r{AREA_RADIUS_CELLS}"] for f in feats]
