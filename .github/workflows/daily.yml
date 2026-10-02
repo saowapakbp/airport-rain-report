@@ -18,6 +18,14 @@ on:
         description: "Send the image to LINE"
         type: boolean
         default: true
+      auto:
+        description: "External scheduler call: wait for the 18 UTC run and skip if already sent today"
+        type: boolean
+        default: false
+      final:
+        description: "Last scheduled attempt: allow fallback to an older run"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -52,9 +60,11 @@ jobs:
           CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "https://hpc.tmd.go.th/static/netcdf/$RUN/$RUN.prec1hr.d02.nc")
           READY=false
           [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && READY=true
-          [ "${{ github.event_name }}" != "schedule" ] && READY=true
-          [ "${{ github.event.schedule }}" = "47 4 * * *" ] && READY=true
-          [ "${{ steps.when.outputs.already_sent }}" = "true" ] && [ "${{ github.event_name }}" = "schedule" ] && READY=false
+          AUTO=false
+          [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.auto }}" = "true" ] && AUTO=true
+          [ "$AUTO" = "false" ] && READY=true
+          [ "${{ github.event.schedule }}" = "47 4 * * *" ] || [ "${{ inputs.final }}" = "true" ] && READY=true
+          [ "${{ steps.when.outputs.already_sent }}" = "true" ] && [ "$AUTO" = "true" ] && READY=false
           echo "run $RUN http=$CODE ready=$READY already_sent=${{ steps.when.outputs.already_sent }}"
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
 
@@ -81,7 +91,7 @@ jobs:
           git push
 
       - name: Send to LINE
-        if: ${{ steps.build.outcome == 'success' && (github.event_name == 'schedule' || inputs.notify) }}
+        if: ${{ steps.build.outcome == 'success' && (github.event_name == 'schedule' || inputs.auto || inputs.notify) }}
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
