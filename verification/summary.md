@@ -1,6 +1,6 @@
 # Verification: WRFDA 12/18 UTC and ECMWF IFS vs AWOS and SYNOP
 
-24 h rainfall 07:00–07:00 ICT at 34 airports · 4 days (2026-09-30 to 2026-10-03) · updated 2026-10-04 14:05 ICT
+24 h rainfall 07:00–07:00 ICT at 34 airports · 4 days (2026-09-30 to 2026-10-03) · updated 2026-10-04 15:38 ICT
 
 Models at the nearest grid point. AWOS from verification/awos_manual.csv (T = 0.05 mm, missing/fault excluded); SYNOP 24 h rain at 00 UTC (group 333 7RRRR). ECMWF open data (CC BY 4.0).
 
