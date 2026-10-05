@@ -70,9 +70,11 @@ jobs:
           # otherwise this run stops without sending and a later slot tries again
           READY=false
           for i in $(seq 1 20); do
-            CODE=$(curl -sk -o /dev/null -w '%{http_code}' -r 0-0 "$URL")
-            echo "$(date +%T) $RUN http=$CODE"
-            [ "$CODE" = "206" ] || [ "$CODE" = "200" ] && { READY=true; break; }
+            # TMD can publish a 0-byte file when a run fails, so require a realistic size, not just HTTP 200
+            SIZE=$(curl -skI "$URL" | awk 'tolower($1)=="content-length:"{gsub(/[^0-9]/,"",$2); print $2}' | tail -1)
+            SIZE=${SIZE:-0}
+            echo "$(date +%T) $RUN size=$SIZE"
+            [ "$SIZE" -gt 1000000 ] && { READY=true; break; }
             [ "$(date +%H%M)" -ge 630 ] || [ "${{ inputs.final }}" = "true" ] && { READY=true; echo "fallback allowed"; break; }
             sleep 120
           done

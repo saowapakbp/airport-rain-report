@@ -39,8 +39,13 @@ def download(run):
     with open(part, "wb") as f:
         for chunk in response.iter_content(1 << 20):
             f.write(chunk)
+    size = part.stat().st_size
+    if size <= MIN_NC_BYTES:
+        part.unlink()
+        # TMD sometimes publishes a 0-byte file when a run fails; treat it like a missing run
+        raise ValueError(f"{tag} is incomplete on the server ({size} bytes)")
     part.replace(out)
-    log.info("downloaded %s (%.1f MB)", out.name, out.stat().st_size / 1e6)
+    log.info("downloaded %s (%.1f MB)", out.name, size / 1e6)
     return out
 
 
@@ -49,8 +54,8 @@ def download_first_available(start):
         run = start - timedelta(hours=offset)
         try:
             return run, download(run)
-        except requests.HTTPError as err:
-            log.warning("run %s not available (%s)", run_tag(run), err.response.status_code)
+        except (requests.HTTPError, ValueError) as err:
+            log.warning("run %s not usable (%s)", run_tag(run), err)
     raise RuntimeError(f"no WRFDA run available for period starting {start:%Y-%m-%d %H} UTC")
 
 
