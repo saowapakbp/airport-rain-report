@@ -34,8 +34,8 @@ def wrfda_column(local_date, offset_h, airports):
     try:
         points = fetch_wrfda(local_date, run_before(local_date, offset_h), False, airports)
         return points.set_index("icao")["rain24_mm"]
-    except requests.HTTPError as err:
-        log.warning("WRFDA run %s not available (%s)", run_before(local_date, offset_h), err)
+    except (requests.HTTPError, ValueError) as err:
+        log.warning("WRFDA run %s not usable (%s)", run_before(local_date, offset_h), err)
         return pd.Series(dtype=float)
 
 

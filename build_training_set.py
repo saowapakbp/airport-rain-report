@@ -50,8 +50,8 @@ def run_features(local_date, run_label, airports):
     run = start - timedelta(hours=RUN_OFFSETS_H[run_label])
     try:
         nc = download(run)
-    except requests.HTTPError as err:
-        log.warning("%s %sZ missing (%s)", local_date, run_label, err.response.status_code)
+    except (requests.HTTPError, ValueError) as err:
+        log.warning("%s %sZ not usable (%s)", local_date, run_label, err)
         return pd.DataFrame()
     total = accumulate_24h(nc, start)
     nc.unlink()
