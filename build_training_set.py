@@ -16,7 +16,7 @@ log = logging.getLogger("training")
 TRAIN_DIR = HERE / "training"
 WRFDA_FEATURES = TRAIN_DIR / "wrfda_features.csv"
 SYNOP_OBS = TRAIN_DIR / "synop_obs.csv"
-RUN_OFFSETS_H = {"12": 12, "18": 6}
+RUN_OFFSETS_H = {"00": 24, "06": 18, "12": 12, "18": 6}
 # half-widths in grid cells (~3 km): 3x3 ~9 km, 7x7 ~21 km, 15x15 ~45 km
 RADII = (1, 3, 7)
 WET_MM = (1.0, 10.0)
