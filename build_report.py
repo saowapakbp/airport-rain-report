@@ -12,11 +12,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
+import requests
 import xarray as xr
 from PIL import Image, ImageFilter
 
-from common import HERE, load_airports
-from fetch_wrfda_24h import GRID_DIR, process_date
+from common import HERE, load_airports, period_start_utc
+from fetch_wrfda_24h import GRID_DIR, process_date, run_tag
 from build_training_set import airport_features, grid_index
 from rain_probability import probability_percent
 
@@ -30,10 +31,13 @@ THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มี�
 THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
                      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
 BUDDHIST_OFFSET = 543
-VIEWPORT = (1560, 975)
+VIEWPORT = (1560, 995)
 SCALE = 1.5
 PREVIEW_WIDTH = 1040
 DRY_MM = 0.1
+# 00Z and 06Z of the previous day join the 12Z main run: area mean of the 3-run average raised CSI>=10 mm from 0.24 to 0.26
+# and cut large false alarms from 4 to 1 (2 Sep-5 Oct 2026 vs SYNOP)
+ENSEMBLE_OFFSETS_H = (24, 18)
 AREA_RADIUS_CELLS = 7
 # must match MAP in report_template.html
 MAP_LON0, MAP_LAT1, MAP_K = 97.0, 20.7, 40.0
@@ -105,10 +109,30 @@ def edge_taper(shape):
     return np.clip(np.outer(rows, np.ones(shape[1])), 0, 1) * np.clip(np.outer(np.ones(shape[0]), cols), 0, 1)
 
 
-def rain_overlay(local_date, run_tag):
+def load_grid(local_date, run_tag):
     with xr.open_dataset(GRID_DIR / f"wrfda_d02_24h_{local_date}_run{run_tag}.nc", engine="scipy") as ds:
-        rain = ds["rain24_mm"].values.astype("float32")
-        lons, lats = ds["x"].values, ds["y"].values
+        return ds["rain24_mm"].load()
+
+
+def ensemble_members(local_date, main_tag, airports):
+    # older runs that are published before the 07:00 ICT issue time; 18Z is excluded (published ~09:30 ICT)
+    start = period_start_utc(local_date)
+    members = {main_tag: load_grid(local_date, main_tag)}
+    for offset in ENSEMBLE_OFFSETS_H:
+        run = start - timedelta(hours=offset)
+        if run_tag(run) in members or run > datetime.strptime(main_tag, "%Y%m%d%H").replace(tzinfo=timezone.utc):
+            continue
+        try:
+            process_date(local_date, run, False, airports)
+            members[run_tag(run)] = load_grid(local_date, run_tag(run))
+        except (requests.HTTPError, ValueError) as err:
+            log.warning("ensemble member %s not usable (%s)", run_tag(run), err)
+    return members
+
+
+def rain_overlay(total):
+    rain = total.values.astype("float32")
+    lons, lats = total["x"].values, total["y"].values
     field = Image.fromarray(np.flipud(rain), mode="F")
     field = field.resize((field.width * OVERLAY_UPSCALE, field.height * OVERLAY_UPSCALE), Image.BILINEAR)
     values = np.asarray(field)
@@ -180,13 +204,15 @@ def main():
     airports = load_airports()
     run = datetime.strptime(args.run, "%Y%m%d%H").replace(tzinfo=timezone.utc) if args.run else None
     points = process_date(args.date, run, False, airports)
-    run_tag = points["run"].iloc[0]
-    meta = {**report_meta(args.date, run_tag), "overlay": rain_overlay(args.date, run_tag)}
-    with xr.open_dataset(GRID_DIR / f"wrfda_d02_24h_{args.date}_run{run_tag}.nc", engine="scipy") as ds:
-        total = ds["rain24_mm"].load()
-    probs = probability_percent(total, airports, args.date)
-    rows = airport_rows(airports, display_values(total, airports), probs)
-    html = write_html(args.date, rows, {**meta, "probShown": bool(probs)})
+    main_tag = points["run"].iloc[0]
+    members = ensemble_members(args.date, main_tag, airports)
+    ens_mean = sum(members.values()) / len(members)
+    # the probability model was trained on the main (12Z) run alone, so it keeps that input
+    probs = probability_percent(members[main_tag], airports, args.date)
+    meta = {**report_meta(args.date, main_tag), "overlay": rain_overlay(ens_mean),
+            "members": " + ".join(f"{t[-2:]}Z" for t in sorted(members)), "probShown": bool(probs)}
+    html = write_html(args.date, airport_rows(airports, display_values(ens_mean, airports), probs), meta)
+    log.info("ensemble members: %s", meta["members"])
     log.info("html -> %s (run %s)", html, meta["run"])
     if args.no_png:
         return

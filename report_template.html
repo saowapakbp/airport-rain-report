@@ -222,7 +222,7 @@ td.prob{width:52px;text-align:center;padding-right:10px}
         <dt>ความละเอียดกริด</dt><dd>3 × 3 กม.</dd>
         <dt>เวลาเริ่มต้น (Init)</dt><dd><span id="fc-run"></span><small id="fc-init-local"></small></dd>
         <dt>ชั่วโมงพยากรณ์</dt><dd id="fc-leads"></dd>
-        <dt>ค่าที่ใช้</dt><dd>ค่าเฉลี่ยพื้นที่รอบจุดอ้างอิงท่าอากาศยาน (ARP)</dd>
+        <dt>ค่าที่ใช้</dt><dd>ค่าเฉลี่ยพื้นที่รอบจุดอ้างอิงท่าอากาศยาน (ARP)<small id="fc-members"></small></dd>
       </dl>
     </section>
   </div>
@@ -358,6 +358,7 @@ const renderHeader = () => {
   document.getElementById('fc-run').textContent = REPORT.run;
   document.getElementById('fc-init-local').textContent = `(${REPORT.initLocal})`;
   document.getElementById('fc-leads').textContent = REPORT.leads;
+  document.getElementById('fc-members').textContent = REPORT.members ? `เฉลี่ยจากรอบ ${REPORT.members}` : '';
   document.getElementById('cap-init').textContent = `Init ${REPORT.run} · ${REPORT.leads}`;
 };
 
