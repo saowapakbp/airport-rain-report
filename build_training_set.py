@@ -65,9 +65,11 @@ def run_features(local_date, run_label, airports):
 
 
 def merge_into(path, new, key):
-    old = pd.read_csv(path, dtype={"init": str, "synop_wmo": str}, encoding="utf-8-sig") if path.exists() else new.iloc[0:0]
+    old = pd.read_csv(path, dtype={"init": str, "run": str, "synop_wmo": str}, encoding="utf-8-sig") if path.exists() else new.iloc[0:0]
+    # keys must share dtypes, otherwise rows never match and re-runs append duplicates
+    new = new.astype({"run": str}) if "run" in new else new
     keep = old[~old.set_index(key).index.isin(new.set_index(key).index)] if len(new) else old
-    merged = pd.concat([keep, new], ignore_index=True).sort_values(key)
+    merged = pd.concat([keep, new], ignore_index=True).drop_duplicates(key, keep="last").sort_values(key)
     merged.to_csv(path, index=False, encoding="utf-8-sig")
     return merged
 
