@@ -11,6 +11,7 @@ from sklearn.model_selection import GroupKFold
 from xgboost import XGBRegressor
 
 from common import CATEGORIES, HERE, load_airports
+from fetch_awos import load_awos
 
 log = logging.getLogger("train")
 
@@ -33,7 +34,14 @@ def load_table(run, near_only):
     table = (feats[feats["run"].astype(str) == run]
              .merge(obs, on=["date", "icao"]).merge(airports, on="icao")
              .dropna(subset=["obs24_mm", "point_mm"]))
-    table = table[table["synop_is_near"].astype(bool)] if near_only else table
+    # AWOS at the airport is the preferred truth; SYNOP within 15 km fills days and airports without AWOS
+    awos = load_awos().rename("awos_mm").reset_index()
+    table = table.merge(awos, on=["date", "icao"], how="left")
+    has_awos = table["awos_mm"].notna()
+    table = table.assign(obs24_mm=table["awos_mm"].where(has_awos, table["obs24_mm"]),
+                         truth=np.where(has_awos, "awos", "synop"))
+    table = table[has_awos | table["synop_is_near"].astype(bool)] if near_only else table
+    table = table.dropna(subset=["obs24_mm"])
     doy = pd.to_datetime(table["date"]).dt.dayofyear
     regions = pd.get_dummies(table["region"], prefix="rg", dtype=float)
     table = pd.concat([table.assign(doy_sin=np.sin(2 * np.pi * doy / 365.25), doy_cos=np.cos(2 * np.pi * doy / 365.25)),

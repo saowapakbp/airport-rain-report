@@ -94,7 +94,7 @@ def main():
                  "cv_bss": float(best["BSS vs climatology"]), "trained": f"{datetime.now(BANGKOK):%Y-%m-%d}",
                  "days": int(table["date"].nunique()), "run": args.run}, MODEL_PATH)
     lines = [
-        f"# P(24 h rain ≥ {THRESHOLD_MM:g} mm) — WRFDA {args.run} UTC, cross-validated against SYNOP",
+        f"# P(24 h rain ≥ {THRESHOLD_MM:g} mm) — WRFDA {args.run} UTC, cross-validated against AWOS (SYNOP where no AWOS)",
         "",
         f"{len(table)} airport-days, {table['date'].nunique()} days ({table['date'].min()} to {table['date'].max()}), "
         f"{int(target.sum())} events ({target.mean():.0%}). {FOLDS}-fold CV grouped by ISO week. "

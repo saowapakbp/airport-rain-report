@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 
 from common import CATEGORIES, HERE, categorize, load_airports, period_start_utc
+from fetch_awos import load_awos
 from compare_ecmwf_ifs import at_airports, download_tp, ifs_24h
 from fetch_synop_24h import process_date as fetch_synop
 from fetch_wrfda_24h import process_date as fetch_wrfda
@@ -16,9 +17,7 @@ log = logging.getLogger("verify")
 VERIFY_DIR = HERE / "verification"
 HISTORY = VERIFY_DIR / "verify_history.csv"
 SUMMARY = VERIFY_DIR / "summary.md"
-AWOS_MANUAL = VERIFY_DIR / "awos_manual.csv"
 BANGKOK = timezone(timedelta(hours=7))
-TRACE_MM = 0.05
 MODELS = {"wrfda12_mm": "WRFDA 12 UTC (19:00 ICT)", "wrfda18_mm": "WRFDA 18 UTC (01:00 ICT)",
           "ifs12_mm": "ECMWF IFS 12 UTC (0.25°)"}
 TRUTHS = {"awos_mm": "AWOS (airport)", "obs24_mm": "SYNOP (nearest station)"}
@@ -45,10 +44,12 @@ def ifs_column(local_date, airports):
     return pd.Series(at_airports(ifs_24h(download_tp(run, steps), steps), airports), index=airports["icao"])
 
 
+AWOS = load_awos()
+
+
 def awos_column(local_date):
-    awos = pd.read_csv(AWOS_MANUAL, dtype=str) if AWOS_MANUAL.exists() else pd.DataFrame(columns=["date", "icao", "awos_raw"])
-    day = awos[awos["date"] == local_date].set_index("icao")["awos_raw"]
-    return pd.to_numeric(day.replace({"T": str(TRACE_MM)}), errors="coerce")
+    awos = AWOS
+    return awos.xs(local_date, level="date") if local_date in awos.index.get_level_values("date") else pd.Series(dtype=float)
 
 
 def verify_day(local_date, airports):
@@ -120,7 +121,7 @@ def write_summary(history):
         f"24 h rainfall 07:00–07:00 ICT at {history['icao'].nunique()} airports · {history['date'].nunique()} days "
         f"({history['date'].min()} to {history['date'].max()}) · updated {datetime.now(BANGKOK):%Y-%m-%d %H:%M} ICT",
         "",
-        "Models at the nearest grid point. AWOS from verification/awos_manual.csv (T = 0.05 mm, missing/fault excluded); "
+        "Models at the nearest grid point. AWOS from the aeromet2 daily rainfall API (verification/awos_history.csv, T = 0.05 mm, missing/fault excluded); "
         "SYNOP 24 h rain at 00 UTC (group 333 7RRRR). ECMWF open data (CC BY 4.0).",
         "",
         "## Scores",

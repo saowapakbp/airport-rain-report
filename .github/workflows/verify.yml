@@ -34,6 +34,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Fetch AWOS rainfall (refreshes the last 7 days for late entries)
+        run: python fetch_awos.py
+
       - name: Verify yesterday
         run: |
           D="${{ inputs.date }}"
