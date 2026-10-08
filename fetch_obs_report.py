@@ -1,20 +1,20 @@
 import argparse
 import logging
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import requests
 import urllib3
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-from common import HERE
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger("obs")
 
 PAGE = "https://aeromet2.tmd.go.th/reports/daily-rainfall?date={date}"
 API = "https://aeromet2.tmd.go.th/api/daily-obs/rainfall-report"
-OUT_DIR = HERE / "reports" / "obs"
+OUT_DIR = Path(__file__).resolve().parent / "reports" / "obs"
 BANGKOK = timezone(timedelta(hours=7))
 SCALE = 2
 PREVIEW_WIDTH = 760
