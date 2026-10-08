@@ -29,9 +29,7 @@ def report_messages(local_date, repo):
 
 def obs_messages(local_date, repo):
     base = RAW_BASE.format(repo=repo)
-    text = f"รายงานปริมาณน้ำฝนรายวันบริเวณท่าอากาศยาน (AWOS)
-วันที่ {local_date} (07:00–07:00 น.)
-ตรวจแล้วส่งต่อกลุ่มกองฯ"
+    text = f"รายงานปริมาณน้ำฝนรายวันบริเวณท่าอากาศยาน (AWOS)\nวันที่ {local_date} (07:00–07:00 น.)\nตรวจแล้วส่งต่อกลุ่มกองฯ"
     image = {"type": "image",
              "originalContentUrl": f"{base}/obs/obs_{local_date}.png",
              "previewImageUrl": f"{base}/obs/obs_{local_date}_preview.jpg"}
