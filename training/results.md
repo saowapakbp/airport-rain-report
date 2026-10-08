@@ -1,14 +1,14 @@
 # WRFDA 12 UTC correction — cross-validated against SYNOP
 
-1895 airport-days, 64 days (2026-08-02 to 2026-10-04), 28 airports with SYNOP within 15 km; rain ≥10 mm observed 386 times. 5-fold CV grouped by ISO week (test weeks never seen in training). Updated 2026-10-05 17:48 ICT.
+1928 airport-days, 67 days (2026-08-02 to 2026-10-07), 34 airports with SYNOP within 15 km; rain ≥10 mm observed 407 times. 5-fold CV grouped by ISO week (test weeks never seen in training). Updated 2026-10-08 22:26 ICT.
 
 | method | MAE | RMSE | bias | cat_match | CSI≥0.1 | CSI≥10 | hit/miss/fa≥10 |
 |---|---|---|---|---|---|---|---|
-| raw | 7.77 | 18.73 | -2.91 | 0.45 | 0.57 | 0.18 | 96/290/143 |
-| bias_region | 9.63 | 21.42 | 0.17 | 0.43 | 0.58 | 0.22 | 137/249/229 |
-| quantile_map | 9.68 | 23.55 | 0.06 | 0.44 | 0.55 | 0.21 | 136/250/249 |
-| random_forest | 6.86 | 18.03 | -4.24 | 0.39 | 0.59 | 0.11 | 45/341/25 |
-| xgboost | 6.98 | 17.97 | -3.88 | 0.39 | 0.59 | 0.13 | 54/332/43 |
+| raw | 8.01 | 18.75 | -2.59 | 0.45 | 0.58 | 0.19 | 104/303/154 |
+| bias_region | 9.79 | 21.55 | 0.23 | 0.42 | 0.58 | 0.22 | 139/268/234 |
+| quantile_map | 9.73 | 23.25 | 0.03 | 0.43 | 0.55 | 0.21 | 143/264/262 |
+| random_forest | 6.89 | 17.69 | -4.26 | 0.39 | 0.60 | 0.10 | 42/365/25 |
+| xgboost | 7.05 | 17.73 | -3.90 | 0.39 | 0.60 | 0.11 | 50/357/49 |
 
 raw = nearest grid point; bias_region = per-region multiplicative factor; quantile_map = empirical CDF mapping; random_forest / xgboost = predict log(1+obs) from point and neighbourhood (9/21/45 km) features, region, location, season.
 
