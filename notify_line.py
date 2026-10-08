@@ -27,6 +27,17 @@ def report_messages(local_date, repo):
     return [{"type": "text", "text": text}, image]
 
 
+def obs_messages(local_date, repo):
+    base = RAW_BASE.format(repo=repo)
+    text = f"รายงานปริมาณน้ำฝนรายวันบริเวณท่าอากาศยาน (AWOS)
+วันที่ {local_date} (07:00–07:00 น.)
+ตรวจแล้วส่งต่อกลุ่มกองฯ"
+    image = {"type": "image",
+             "originalContentUrl": f"{base}/obs/obs_{local_date}.png",
+             "previewImageUrl": f"{base}/obs/obs_{local_date}_preview.jpg"}
+    return [{"type": "text", "text": text}, image]
+
+
 def failure_messages(local_date, run_url):
     text = f"สร้างรายงานฝนสะสมวันที่ {local_date} ไม่สำเร็จ\nดูรายละเอียด: {run_url}"
     return [{"type": "text", "text": text}]
@@ -37,9 +48,11 @@ def main():
     parser.add_argument("--date", default=datetime.now(BANGKOK).strftime("%Y-%m-%d"))
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", "saowapakbp/airport-rain-report"))
     parser.add_argument("--failed", action="store_true", help="send a failure notice instead of the report")
+    parser.add_argument("--kind", choices=["forecast", "obs"], default="forecast", help="which report image to send")
     parser.add_argument("--run-url", default="")
     args = parser.parse_args()
-    messages = failure_messages(args.date, args.run_url) if args.failed else report_messages(args.date, args.repo)
+    builders = {"forecast": report_messages, "obs": obs_messages}
+    messages = failure_messages(args.date, args.run_url) if args.failed else builders[args.kind](args.date, args.repo)
     push(messages)
 
 

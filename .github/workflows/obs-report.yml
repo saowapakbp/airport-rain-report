@@ -1,0 +1,90 @@
+name: obs-report
+
+on:
+  schedule:
+    # Asia/Bangkok 08:15, 08:45, 09:15, 10:15. The AWOS report is published at 08:00; later slots are retries
+    # for GitHub's late or dropped cron runs, and stop once reports/obs/sent_<date>.txt exists.
+    - cron: "15 1 * * *"
+    - cron: "45 1 * * *"
+    - cron: "15 2 * * *"
+    - cron: "15 3 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Observation date YYYY-MM-DD (blank = yesterday, Asia/Bangkok)"
+        required: false
+      notify:
+        description: "Send the image to LINE"
+        type: boolean
+        default: true
+      auto:
+        description: "External scheduler call: skip if already sent"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: obs-report
+  cancel-in-progress: false
+
+jobs:
+  obs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Bangkok
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolve date
+        id: when
+        run: |
+          D="${{ inputs.date }}"
+          D="${D:-$(date -d yesterday +%F)}"
+          echo "date=$D" >> "$GITHUB_OUTPUT"
+          AUTO=false
+          [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.auto }}" = "true" ] && AUTO=true
+          SKIP=false
+          [ "$AUTO" = "true" ] && [ -f "reports/obs/sent_$D.txt" ] && SKIP=true
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          echo "date=$D auto=$AUTO skip=$SKIP"
+
+      - uses: actions/setup-python@v6
+        if: ${{ steps.when.outputs.skip != 'true' }}
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Capture report
+        id: capture
+        if: ${{ steps.when.outputs.skip != 'true' }}
+        run: |
+          pip install requests pillow playwright
+          python -m playwright install chromium
+          python fetch_obs_report.py --date "${{ steps.when.outputs.date }}"
+
+      - name: Commit image
+        if: ${{ steps.capture.outcome == 'success' }}
+        run: |
+          git config user.name "report-bot"
+          git config user.email "report-bot@users.noreply.github.com"
+          git add reports/obs/*.png reports/obs/*.jpg
+          git commit -m "obs: ${{ steps.when.outputs.date }}" || echo "no changes"
+          git pull --rebase -q
+          git push
+
+      - name: Send to LINE
+        if: ${{ steps.capture.outcome == 'success' && (github.event_name == 'schedule' || inputs.auto || inputs.notify) }}
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: |
+          sleep 20
+          python notify_line.py --kind obs --date "${{ steps.when.outputs.date }}"
+          date '+%F %T %Z' > "reports/obs/sent_${{ steps.when.outputs.date }}.txt"
+          git add reports/obs/sent_*.txt
+          git commit -m "obs sent: ${{ steps.when.outputs.date }}"
+          git pull --rebase -q
+          git push
